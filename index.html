@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0c17">
+<meta name="description" content="霓虹雷擊 NEON STRIKER。操控雷隼戰機，穿越三個像素空域，挑戰關底頭目與最高分。支援手機、鍵盤與滑鼠。">
+<title>霓虹雷擊 NEON STRIKER · PULSE ARCADE</title>
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="霓虹雷擊">
+<link rel="preload" href="assets/cover.webp" as="image" fetchpriority="high">
+<link rel="preload" href="assets/pulse-grid.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js?v=2"></script>
+<script defer src="pwa.js"></script>
+</head>
+<body data-mode="title">
+<header class="mast">
+  <div class="mast-inner">
+    <div class="brand" aria-label="Pulse Arcade"><span class="brand-sign"><i class="icon" style="--pic:url(assets/i-pulse.png)"></i></span><span>PULSE <b>ARCADE</b></span></div>
+    <div class="top-actions">
+      <button class="utility install-control" data-install hidden>安裝遊戲</button>
+      <button class="utility" data-action="sound" aria-label="關閉聲音" aria-pressed="true"><i class="icon ic-sound"></i><span class="sound-label">聲音開啟</span></button>
+      <button class="utility" data-action="full" aria-label="進入全螢幕"><i class="icon" style="--pic:url(assets/i-full.png)"></i><span class="full-label">全螢幕</span></button>
+    </div>
+  </div>
+</header>
+<main class="cockpit">
+ <aside class="bank bank-left" aria-label="玩家資訊">
+   <section class="panel">
+     <div class="panel-inner">
+       <div class="panel-head"><i class="icon" style="--pic:url(assets/i-pilot.png)"></i><h2>玩家狀態</h2><span class="tag tag-p1">1P</span></div>
+       <div class="score-group"><div class="sub-label">目前分數</div><output class="score-big" id="score">0000000</output></div>
+       <div class="record"><span><i class="icon" style="--pic:url(assets/i-cup.png)"></i>最高紀錄</span><strong id="best">0000000</strong></div>
+       <div class="supplies">
+         <div><span>剩餘機體</span><div class="pips life" id="lifePips" aria-label="剩餘機體 3"></div></div>
+         <div><span>脈衝炸彈</span><div class="pips bomb" id="bombPips" aria-label="脈衝炸彈 3"></div></div>
+       </div>
+     </div>
+   </section>
+   <section class="panel aircraft-panel">
+     <div class="panel-inner">
+       <div class="panel-head"><i class="icon" style="--pic:url(assets/i-ship.png)"></i><h2>出擊機體</h2></div>
+       <div class="hangar"><div class="hangar-img"><img src="assets/vx01.png" width="55" height="61" alt=""></div><div><div class="air-id">VX-01</div><div class="air-name">雷隼戰機</div></div></div>
+       <div class="loadout"><span>主砲火力</span><strong id="level">LV.1</strong></div>
+     </div>
+   </section>
+ </aside>
+ <section class="machine" aria-label="霓虹雷擊遊戲機台">
+   <div class="bezel">
+     <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+     <div class="screen" id="screen">
+       <div class="cover" aria-hidden="true"></div>
+       <canvas id="game" width="360" height="640" aria-label="9 比 16 縱向卷軸遊戲戰場"></canvas>
+       <div id="titleScreen" class="title-screen">
+         <div class="title-stats pixel"><span><i></i> 1 PLAYER</span><span class="hi"><i class="icon" style="--pic:url(assets/i-cup.png)"></i><span>HI</span> <b id="titleBest">0000000</b></span></div>
+         <h1><img src="assets/title.png" alt="NEON STRIKER"><span class="zh-title"><i></i>霓虹雷擊<i></i></span></h1>
+         <div class="launch">
+           <button class="start-btn" data-action="start"><i class="icon" style="--pic:url(assets/i-play.png)"></i><span>開始遊戲</span></button>
+           <span class="launch-hint desktop-hint">或按 <kbd>ENTER</kbd> 出擊</span>
+           <div class="mobile-title-controls"><button class="install-control" data-install hidden>安裝遊戲</button><span class="install-control" data-install-separator hidden></span><button data-action="help">操作說明</button><span></span><button data-action="sound" aria-label="關閉聲音" aria-pressed="true"><i class="icon ic-sound"></i></button><span></span><button data-action="full" aria-label="進入全螢幕"><i class="icon" style="--pic:url(assets/i-full.png)"></i></button></div>
+         </div>
+       </div>
+       <div class="hud" id="hud" hidden>
+         <div class="hud-top">
+           <div class="hud-score"><small class="pixel">1UP</small><b id="hudScore" class="pixel">0000000</b><div class="hud-lives" id="hudLives"></div></div>
+           <button class="hud-pause" data-action="pause" aria-label="暫停遊戲"><i class="icon" style="--pic:url(assets/i-pause.png)"></i></button>
+         </div>
+         <div class="boss-gauge" id="bossGauge" hidden><div><span>頭目</span><b id="bossName"></b></div><div class="boss-track"><i id="bossHp"></i></div></div>
+         <button class="hud-bomb" data-action="bomb" aria-label="施放脈衝炸彈"><i class="icon" style="--pic:url(assets/i-bolt.png)"></i><b id="hudBomb" class="pixel">3</b></button>
+         <div class="flight-hint" id="flightHint" hidden></div>
+       </div>
+       <div class="modal" id="modal" hidden>
+         <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+           <div class="dialog-head"><span class="pixel" id="dialogKicker"></span><h2 id="dialogTitle"></h2></div>
+           <div id="dialogBody"></div><div class="dialog-actions" id="dialogActions"></div>
+         </section>
+       </div>
+       <div class="screen-glass" aria-hidden="true"></div>
+     </div>
+   </div>
+   <div class="under-bezel" aria-hidden="true"><i></i><span class="status-led"></span><b id="cabinetStatus">待機中</b><i></i></div>
+ </section>
+ <aside class="bank bank-right" aria-label="航線與操作">
+   <section class="panel">
+     <div class="panel-inner">
+       <div class="panel-head"><i class="icon" style="--pic:url(assets/i-target.png)"></i><h2>任務航線</h2><span class="sector-counter" id="sectorCount">01 / 03</span></div>
+       <ol id="route" class="route">
+         <li class="current" aria-current="step"><span class="node">01</span><div><strong>暮光港灣</strong><small>DUSK HARBOR</small></div></li>
+         <li><span class="node">02</span><div><strong>翡翠裂谷</strong><small>JADE RIFT</small></div></li>
+         <li><span class="node">03</span><div><strong>天頂要塞</strong><small>ZENITH KEEP</small></div></li>
+       </ol>
+     </div>
+   </section>
+   <section class="panel controls-panel">
+     <div class="panel-inner">
+       <div class="panel-head"><i class="icon" style="--pic:url(assets/i-pad.png)"></i><h2>操作指南</h2></div>
+       <div class="key-list">
+        <div><span>移動</span><span class="keys arrows" aria-label="方向鍵"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
+        <div><span>炸彈</span><kbd>SPACE</kbd></div>
+        <div><span>暫停</span><kbd>P</kbd></div>
+       </div>
+       <button class="guide-link" data-action="help"><i class="icon" style="--pic:url(assets/i-key.png)"></i>完整操作說明</button>
+     </div>
+   </section>
+ </aside>
+</main>
+<div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>
