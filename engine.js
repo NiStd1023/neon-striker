@@ -5,6 +5,13 @@ export const STAGES = [
   { name: '翡翠裂谷', en: 'JADE RIFT', boss: '碧晶守衛', tint: '#8ed4be', music: 1 },
   { name: '天頂要塞', en: 'ZENITH KEEP', boss: '日蝕核心', tint: '#f39d93', music: 2 }
 ];
+export const DIFFICULTIES = [
+  { name: '新兵', shotSpeed: 1,    fireRate: 1,    waveRate: 1,    bossHealth: 1 },
+  { name: '飛官', shotSpeed: 1.10, fireRate: 1.16, waveRate: 1.06, bossHealth: 1.10 },
+  { name: '精英', shotSpeed: 1.20, fireRate: 1.34, waveRate: 1.13, bossHealth: 1.21 },
+  { name: '王牌', shotSpeed: 1.32, fireRate: 1.54, waveRate: 1.21, bossHealth: 1.34 },
+  { name: '傳奇', shotSpeed: 1.45, fireRate: 1.76, waveRate: 1.30, bossHealth: 1.50 }
+];
 const WAVES = [1.3, 4.7, 8.2, 11.7, 15, 18.7, 22, 25.5, 29, 32.5];
 const TAU = Math.PI * 2;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -20,6 +27,7 @@ export class Flight {
   }
   reset() {
     this.mode = 'title';
+    this.difficulty = DIFFICULTIES[0];
     this.stage = 0;
     this.score = this.kills = this.stageKills = this.wave = this.dropCount = 0;
     this.lives = this.bombs = 3;
@@ -30,8 +38,9 @@ export class Flight {
     this.particles = []; this.rings = []; this.labels = [];
     this.boss = null;
   }
-  start() {
+  start(difficulty = 1) {
     this.reset();
+    this.difficulty = DIFFICULTIES[difficulty - 1] || DIFFICULTIES[0];
     this.beginStage(0);
     this.emit('launch');
   }
@@ -49,7 +58,7 @@ export class Flight {
     this.enemies.push({
       kind, x, y, baseX:x, age:0, path, dir, phase:i*.32, t:r()*.65,
       speed:[79,90,57][kind]+st*9, hp:[2,3,8][kind]+(kind===2?st*2:0),
-      rx:[11,13,18][kind], ry:[11,15,16][kind], fire:1.2+r()*1.15+i*.15,
+      rx:[11,13,18][kind], ry:[11,15,16][kind], fire:(1.2+r()*1.15+i*.15)/this.difficulty.fireRate,
       value:[100,160,360][kind], blink:0, gone:false
     });
   }
@@ -77,12 +86,13 @@ export class Flight {
   }
   spawnBoss() {
     this.enemies.length=0; this.bullets.length=0;
-    const hp=[94,128,160][this.stage];
+    const hp=Math.round([94,128,160][this.stage]*this.difficulty.bossHealth);
     this.boss={x:W/2,y:-58,hp,max:hp,age:0,fire:2.45,pattern:0,blink:0,rx:52,ry:29};
     this.emit('boss',this.stage);
   }
   addBullet(x,y,angle,speed,kind=0) {
     if(this.bullets.length>=240) return;
+    speed *= this.difficulty.shotSpeed;
     this.bullets.push({x,y,dx:Math.cos(angle)*speed,dy:Math.sin(angle)*speed,kind,r:kind===2?4:3,age:0,gone:false});
   }
   aim(x,y) { return Math.atan2(this.player.y-y,this.player.x-x); }
@@ -218,7 +228,7 @@ export class Flight {
       else if(e.path==='weave'){e.x=e.baseX+e.dir*(1-Math.cos(e.age*1.55)) * 43;}
       else {e.x=e.baseX+Math.sin(e.age*1.45+e.phase)*17;}
       e.fire-=dt;
-      if(e.fire<=0){this.enemyFire(e);e.fire=(e.kind===2?1.85:2.55)-this.stage*.24+this.random()*.38;}
+      if(e.fire<=0){this.enemyFire(e);e.fire=((e.kind===2?1.85:2.55)-this.stage*.24+this.random()*.38)/this.difficulty.fireRate;}
     }
     const b=this.boss;
     if(b) {
@@ -229,7 +239,7 @@ export class Flight {
         b.y=109+Math.sin(t*.88)*14+Math.sin(t*.39)*9;
       }
       b.fire-=dt;
-      if(b.fire<=0){this.bossFire(b);b.fire=1.22-this.stage*.145+(b.pattern%4===0?.42:0);}
+      if(b.fire<=0){this.bossFire(b);b.fire=(1.22-this.stage*.145+(b.pattern%4===0?.42:0))/this.difficulty.fireRate;}
     }
   }
   resolveShots(dt) {
@@ -278,8 +288,9 @@ export class Flight {
       }
       return;
     }
-    if(this.wave<WAVES.length && this.stageTime>=WAVES[this.wave])this.spawnWave(this.wave++);
-    if(!this.boss && this.wave===WAVES.length && this.stageTime>=38+this.stage)this.spawnBoss();
+    const waveClock=this.stageTime*this.difficulty.waveRate;
+    if(this.wave<WAVES.length && waveClock>=WAVES[this.wave])this.spawnWave(this.wave++);
+    if(!this.boss && this.wave===WAVES.length && waveClock>=38+this.stage)this.spawnBoss();
     this.advanceEnemies(dt);
     this.resolveShots(dt);
     if(this.mode==='playing')this.resolveHazards(dt);

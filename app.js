@@ -1,14 +1,25 @@
-import {Flight,W,H,STAGES} from './engine.js';
+import {Flight,W,H,STAGES,DIFFICULTIES} from './engine.js';
 import {ArcadeAudio} from './sound.js?v=2';
 import {Renderer} from './draw.js';
 
 const $=id=>document.getElementById(id);
 const body=document.body,screen=$('screen'),canvas=$('game'),modal=$('modal');
-const recordKey='pulse.neon-striker.best.v1', soundKey='pulse.neon-striker.sound.v1';
+const difficultyKey='pulse.neon-striker.difficulty.v1', soundKey='pulse.neon-striker.sound.v1';
 function readSetting(k){try{return localStorage.getItem(k);}catch{return null;}}
 function writeSetting(k,v){try{localStorage.setItem(k,String(v));}catch{/* Private browsing may restrict storage. */}}
+const selector=$('difficulty');
+const lastDifficulty=Number(readSetting(difficultyKey));
+let difficulty=Number.isInteger(lastDifficulty) && DIFFICULTIES[lastDifficulty-1] ? lastDifficulty : 1;
+for(const [i,setting] of DIFFICULTIES.entries()){
+  selector.add(new Option('第 '+(i+1)+' 級 · '+setting.name, String(i+1)));
+}
+selector.value=String(difficulty);
+function recordKey(){
+  const original='pulse.neon-striker.best.v1';
+  return difficulty===1 ? original : original+'.'+difficulty;
+}
 function readBest() {
-  const value=Number(readSetting(recordKey));
+  const value=Number(readSetting(recordKey()));
   return Number.isSafeInteger(value) && value>=0 ? value : 0;
 }
 let best=readBest();
@@ -36,7 +47,7 @@ const setLives=buildPips('lifePips','剩餘機體'),setHudLives=buildPips('hudLi
 function persistBest(){
   const stored=readBest();
   best=Math.max(stored,best,run.score);
-  if(best>stored)writeSetting(recordKey,best);
+  if(best>stored)writeSetting(recordKey(),best);
 }
 function clearInput() {
   keys.clear();target=null;
@@ -127,9 +138,16 @@ function closeDialog(restore=false) {
   if(restore&&back?.isConnected&&!modal.contains(back))back.focus({preventScroll:true});
   else if(active())screen.focus({preventScroll:true});
 }
+selector.addEventListener('change',()=>{
+  if(run.mode!=='title')return;
+  difficulty=Number(selector.value);
+  writeSetting(difficultyKey,difficulty);
+  best=readBest();
+  syncHud();
+});
 function start() {
   audio.unlock();bestBefore=best;audio.resetMusic();closeDialog();
-  run.start();body.dataset.mode='playing';$('hud').hidden=false;
+  run.start(difficulty);body.dataset.mode='playing';$('hud').hidden=false;
   syncHud();screen.focus({preventScroll:true});
 }
 function resume() {
@@ -139,6 +157,7 @@ function resume() {
 function pause() {
   if(!active())return;
   const stage=STAGES[run.stage],p=document.createElement('div');p.className='result-rows';
+  row(p,'出擊難度',selector.selectedOptions[0].text);
   row(p,'目前空域','0'+(run.stage+1)+'　'+stage.name);
   row(p,'目前分數',fmt(run.score),'final-score');
   const settings=document.createElement('div');settings.className='dialog-settings';
@@ -162,6 +181,7 @@ function result(won,retired=false) {
   best=Math.max(best,run.score);const endWasRecord=run.score>bestBefore;persistBest();
   const r=document.createElement('div');r.className='result-rows';
   row(r,endWasRecord?'最高新紀錄':'最終分數',fmt(run.score),'final-score');
+  row(r,'出擊難度',selector.selectedOptions[0].text);
   row(r,'擊破敵機',String(run.kills)+' 架');
   row(r,'抵達空域','0'+(run.stage+1)+'　'+STAGES[run.stage].name);
   body.dataset.mode=won?'won':'over';$('hud').hidden=true;
@@ -205,7 +225,7 @@ document.addEventListener('click',e=>{
 const movement=new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD']);
 window.addEventListener('keydown',e=>{
   const k=e.code;
-  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.metaKey||e.ctrlKey||e.altKey||e.target===selector)return;
   if(k==='Tab'&&dialog) {
     const b=[...modal.querySelectorAll('button:not(:disabled)')],first=b[0],last=b[b.length-1];
     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
@@ -261,7 +281,7 @@ screen.addEventListener('contextmenu',e=>e.preventDefault());
 function inactive() {if(active()&&!dialog)pause();clearInput();persistBest();}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)inactive();});
 window.addEventListener('storage',e=>{
-  if(e.key===recordKey){best=Math.max(best,readBest());syncHud();}
+  if(e.key===recordKey()){best=Math.max(best,readBest());syncHud();}
 });
 window.addEventListener('blur',inactive);window.addEventListener('pagehide',persistBest);
 function loop(now) {

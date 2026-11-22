@@ -15,7 +15,7 @@
 <link rel="preload" href="assets/cover.webp" as="image" fetchpriority="high">
 <link rel="preload" href="assets/pulse-grid.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="style.css">
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 <script defer src="pwa.js"></script>
 </head>
 <body data-mode="title">
@@ -60,6 +60,10 @@
          <div class="title-stats pixel"><span><i></i> 1 PLAYER</span><span class="hi"><i class="icon" style="--pic:url(assets/i-cup.png)"></i><span>HI</span> <b id="titleBest">0000000</b></span></div>
          <h1><img src="assets/title.png" alt="NEON STRIKER"><span class="zh-title"><i></i>霓虹雷擊<i></i></span></h1>
          <div class="launch">
+           <div class="difficulty-control">
+             <label for="difficulty">出擊難度</label>
+             <select id="difficulty"></select>
+           </div>
            <button class="start-btn" data-action="start"><i class="icon" style="--pic:url(assets/i-play.png)"></i><span>開始遊戲</span></button>
            <span class="launch-hint desktop-hint">或按 <kbd>ENTER</kbd> 出擊</span>
            <div class="mobile-title-controls"><button class="install-control" data-install hidden>安裝遊戲</button><span class="install-control" data-install-separator hidden></span><button data-action="help">操作說明</button><span></span><button data-action="sound" aria-label="關閉聲音" aria-pressed="true"><i class="icon ic-sound"></i></button><span></span><button data-action="full" aria-label="進入全螢幕"><i class="icon" style="--pic:url(assets/i-full.png)"></i></button></div>

@@ -1,7 +1,5 @@
-// Cache each release as a complete set. Existing tabs keep their current
-// release until they close, so game code and artwork stay in sync.
-const CACHE = 'neon-striker-pwa-v1';
-const PREFIX = 'neon-striker-pwa-';
+const CACHE = 'neon-striker-pwa-v2';
+const SCOPE = new URL(self.registration.scope);
 const ASSETS = [
   "./",
   "./app.js",
@@ -51,7 +49,6 @@ const ASSETS = [
   "./assets/wisp.png",
   "./draw.js",
   "./engine.js",
-  "./index.html",
   "./manifest.webmanifest",
   "./music.js",
   "./pwa.js",
@@ -62,38 +59,55 @@ const ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    try {
-      await cache.addAll(ASSETS);
-    } catch (error) {
-      await caches.delete(CACHE);
-      throw error;
-    }
+    await cache.addAll(ASSETS.map(path => new Request(new URL(path, SCOPE), {cache:'reload'})));
   })());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(name => name.startsWith(PREFIX) && name !== CACHE)
+    await Promise.all(names.filter(name => name.startsWith('neon-striker-pwa-') && name !== CACHE)
       .map(name => caches.delete(name)));
     await self.clients.claim();
   })());
 });
 
+async function readCached(request) {
+  try {
+    return await caches.match(request, { cacheName: CACHE, ignoreSearch: true });
+  } catch {
+    return undefined;
+  }
+}
+
+async function openGame(request) {
+  try {
+    return await fetch(request);
+  } catch (networkError) {
+    const shell = await readCached(SCOPE.href);
+    if (!shell || !shell.ok || !shell.headers.get('content-type')?.includes('text/html')
+        || new URL(shell.url).origin !== SCOPE.origin) throw networkError;
+    // A navigation cannot reuse a response with a followed redirect.
+    return shell.redirected
+      ? new Response(shell.body, { status: shell.status, headers: shell.headers })
+      : shell;
+  }
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (request.method !== 'GET' || url.origin !== SCOPE.origin) return;
+
+  if (request.mode === 'navigate') {
+    if (url.pathname === SCOPE.pathname || url.pathname === SCOPE.pathname + 'index.html') {
+      event.respondWith(openGame(request));
+    }
+    return;
+  }
 
   event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    if (request.mode === 'navigate') {
-      const shell = await cache.match('./index.html');
-      if (shell) return shell;
-      return fetch(request);
-    }
-    const cached = await cache.match(request, { ignoreSearch: true });
-    if (cached) return cached;
-    return fetch(request);
+    const cached = await readCached(request);
+    return cached || fetch(request);
   })());
 });
